@@ -6,8 +6,8 @@
 {{ pool }}_{{ dataset }}_ownership:
   file.directory:
     - name: /{{ pool }}/{{ dataset }}
-    - user: test
-    - group: test
+    - user: root
+    - group: root
     - recurse:
       - user
       - group

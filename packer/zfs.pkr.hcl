@@ -29,7 +29,7 @@ variable "local_user" {
 
 variable "local_pass" {
   type    = string
-  default = "debian"
+  sensitive = true
 }
 
 variable "vm_name" {
@@ -101,13 +101,13 @@ build {
   # Update and Upgrade the VM
   provisioner "ansible" {
     playbook_file   = "ansible/update-upgrade.yml"
-    user            = "debian"
+    user            = var.local_user
 }
 
   # Clone Anton Repo
   provisioner "ansible" {
     playbook_file   = "ansible/son-of-anton.yml"
-    user            = "debian"
+    user            = var.local_user
 }
 
   #Post-processor
