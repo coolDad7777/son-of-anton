@@ -1,4 +1,9 @@
 #!/bin/bash
+set -euo pipefail
+
+DRY_RUN="${DRY_RUN:-true}"
+ALLOW_DESTRUCTIVE="${ALLOW_DESTRUCTIVE:-false}"
+CONFIRM_DESTRUCTIVE="${CONFIRM_DESTRUCTIVE:-}"
 
 baseSoftware() {
     # Make sure some basic apps are installed. Tools for work post deployment
@@ -131,38 +136,38 @@ EOF
 }
 
 diskMappings() {
-
-    META_FILE="/opt/son-of-anton/salt/zfs/metaDisks.txt"
-    DATA_FILE="/opt/son-of-anton/salt/zfs/disks.txt"
-
-    # Clear old files
-    : > "$META_FILE"
-    : > "$DATA_FILE"
-
-    # Classify disks
-    lsblk -dn -o NAME,TYPE,SIZE | awk '$2=="disk"{print $1,$3}' | while read -r name size; do
-        if [[ "$size" == "5G" ]]; then
-            echo "/dev/$name" >> "$META_FILE"
-        elif [[ "$size" == "10G" ]]; then
-            echo "/dev/$name" >> "$DATA_FILE"
-        fi
-    done
-
-    # Output
-    echo "Meta (5G) disks:"
-    cat "$META_FILE"
-
+    echo "Configured ZFS devices must be stable /dev/disk/by-id paths in pillar/zfs/pool.sls."
+    echo "Available whole disks:"
+    lsblk -dn -o PATH,MODEL,SERIAL,SIZE,TYPE | awk '$5=="disk"'
     echo
-    echo "Data (10G) disks:"
-    cat "$DATA_FILE"
+    echo "Stable device identifiers:"
+    find /dev/disk/by-id -maxdepth 1 -type l -printf '%f -> %l\n' 2>/dev/null | sort || true
+}
+
+applyStates() {
+    echo "Running Salt in test mode first..."
+    salt '*' state.apply test=True
+
+    if [[ "${DRY_RUN,,}" == "true" ]]; then
+        echo "DRY_RUN=true; no state changes were requested."
+        return 0
+    fi
+
+    if [[ "${ALLOW_DESTRUCTIVE,,}" != "true" ||
+          "${CONFIRM_DESTRUCTIVE}" != "CREATE_ZFS_POOLS" ]]; then
+        echo "Refusing real Salt apply. Set ALLOW_DESTRUCTIVE=true and CONFIRM_DESTRUCTIVE=CREATE_ZFS_POOLS explicitly." >&2
+        return 1
+    fi
+
+    echo "Applying Salt states with destructive operations enabled..."
+    salt '*' state.apply
 }
 
 main() {
     baseSoftware
     saltInstall
     diskMappings
-    echo "Running full salt build"
-    salt '*' state.apply test=false
+    applyStates
 }
 
 main

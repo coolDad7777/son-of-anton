@@ -3,7 +3,7 @@
   hosts: all
   become: true
   vars:
-    repo_url: "https://github.com/mrbrown89/son-of-anton.git"
+    repo_url: "https://github.com/coolDad7777/son-of-anton.git"
     repo_branch: "main"
     repo_dest: "/opt/son-of-anton"
     bootstrap_script: "/opt/son-of-anton/bootStrap/bootStrap.sh"
